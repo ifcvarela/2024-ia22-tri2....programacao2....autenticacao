@@ -1,10 +1,17 @@
-import express, { application } from 'express'
+import express from 'express'
 const app = express()
 
 app.use(express.json())
 app.use(express.static(__dirname + '/../public'))
 
-const registredUsers = [
+const port = 3000
+
+type User = {
+  username: string
+  password: string
+}
+
+const registredUsers: User[] = [
   {
     username: "daniel",
     password: "123123"
@@ -15,21 +22,41 @@ const registredUsers = [
   }
 ]
 
-const logedUsers: any = [
+const logedUsers: User[] = [
   // 
 ]
 
+const findUser = (username: string, password: string) => {
+  return registredUsers.find(user => user.username === username && user.password === password)
+}
+
+const findUserByToken = (token: string) => {
+  const pos = parseInt(token)
+  return logedUsers[pos]
+}
+
+const userAlreadyLoged = (username: string, password: string) => {
+  return logedUsers.find(user => user.username === username && user.password === password)
+}
+
+const deleteToken = (token: string) => {
+  const pos = parseInt(token)
+  delete logedUsers[pos]
+}
 
 app.get("/check/:token", (req, res) => {
   const { token } = req.params
-  if (!logedUsers[token])
+  const user = findUserByToken(token)
+  if (!user)
     return res.status(401).json({ error: "Token inválido" })
   return res.json({ message: "Usuário logado" })
 })
 
 app.post("/login", (req, res) => {
   const { username, password } = req.body
-  const user = registredUsers.find(user => user.username === username && user.password === password)
+  if (userAlreadyLoged(username, password))
+    return res.status(401).json({ error: "Usuário já está logado" })
+  const user = findUser(username, password)
   if (!user)
     return res.status(401).json({ error: "Usuário não encontrado" })
   logedUsers.push(user)
@@ -39,12 +66,11 @@ app.post("/login", (req, res) => {
 
 app.post("/logout/:token", (req, res) => {
   const { token } = req.params
-  if (!logedUsers[token])
+  const user = findUserByToken(token)
+  if (!user)
     return res.status(401).json({ error: "Token inválido" })
-  delete logedUsers[token]
+  deleteToken(token)
   return res.json({ message: "Usuário deslogado" })
 })
 
-app.listen(80, () => {
-  console.log("Server is running on port 3000")
-})
+app.listen(port, () => console.log(`⚡ Server is running on port ${port}`))
