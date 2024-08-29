@@ -45,6 +45,6 @@ app.post("/logout/:token", (req, res) => {
   return res.json({ message: "Usuário deslogado" })
 })
 
-app.listen(3000, () => {
+app.listen(80, () => {
   console.log("Server is running on port 3000")
 })

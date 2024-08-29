@@ -1,1 +1,15 @@
-# 2024-tri2-ia22-autentica-o
+# Autenticação de Usuários (single server)
+
+...
+
+## Autenticação VS Autorização
+
+...
+
+## Autenticação com Token (JWT)
+
+...
+
+## Projeto (Objeto de Estudos)
+
+...
