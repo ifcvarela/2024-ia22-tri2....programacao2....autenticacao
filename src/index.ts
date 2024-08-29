@@ -1,76 +1,59 @@
 import express from 'express'
+import * as userServices from './services/user.services'
+import { randomUUID } from 'crypto'
+
+const port = 3000
 const app = express()
 
 app.use(express.json())
 app.use(express.static(__dirname + '/../public'))
 
-const port = 3000
+type user = { id: number, name: string, email: string, username: string, password: string }
+const logged: { [token: string]: user } = {}
 
-type User = {
-  username: string
-  password: string
+const isAlreadyLogged = (username: string) => {
+  for (const token in logged)
+    if (logged[token].username === username)
+      return token
+  return false
 }
 
-const registredUsers: User[] = [
-  {
-    username: "daniel",
-    password: "123123"
-  },
-  {
-    username: "admin",
-    password: "admin"
-  }
-]
-
-const logedUsers: User[] = [
-  // 
-]
-
-const findUser = (username: string, password: string) => {
-  return registredUsers.find(user => user.username === username && user.password === password)
-}
-
-const findUserByToken = (token: string) => {
-  const pos = parseInt(token)
-  return logedUsers[pos]
-}
-
-const userAlreadyLoged = (username: string, password: string) => {
-  return logedUsers.find(user => user.username === username && user.password === password)
-}
-
-const deleteToken = (token: string) => {
-  const pos = parseInt(token)
-  delete logedUsers[pos]
-}
-
-app.get("/check/:token", (req, res) => {
-  const { token } = req.params
-  const user = findUserByToken(token)
-  if (!user)
-    return res.status(401).json({ error: "Token inválido" })
-  return res.json({ message: "Usuário logado" })
-})
-
-app.post("/login", (req, res) => {
+// CREATE::LOGIN
+app.post("/token", async (req, res) => {
   const { username, password } = req.body
-  if (userAlreadyLoged(username, password))
-    return res.status(401).json({ error: "Usuário já está logado" })
-  const user = findUser(username, password)
+  const tokenAlread = isAlreadyLogged(username)
+  if (tokenAlread)
+    return res.status(401).json({
+      error: "Usuário já está logado", 
+      token: tokenAlread
+    })
+  const user = await userServices.findUserByLoginPassword(username, password)
   if (!user)
-    return res.status(401).json({ error: "Usuário não encontrado" })
-  logedUsers.push(user)
-  const token = logedUsers.length - 1
+    return res.status(401).json({ error: "Usuário ou senha inválidos" })
+  const token = randomUUID()
+  logged[token] = user
   return res.json({ token })
 })
 
-app.post("/logout/:token", (req, res) => {
-  const { token } = req.params
-  const user = findUserByToken(token)
-  if (!user)
+// READ::CHECK
+app.get("/token/:token", (req, res) => {
+  const token = req.params.token
+  if (!token)
+    return res.status(401).json({ error: "Token não informado" })
+  if (!logged[token])
     return res.status(401).json({ error: "Token inválido" })
-  deleteToken(token)
-  return res.json({ message: "Usuário deslogado" })
+  return res.json({ ...logged[token], password: undefined })
+})
+
+// DELETE::LOGOUT
+app.delete("/token/:token", (req, res) => {
+  const token = req.params.token
+  if (!token)
+    return res.status(401).json({ error: "Token não informado" })
+  if (!logged[token])
+    return res.status(401).json({ error: "Token inválido" })
+  delete logged[token]
+  return res.status(204).send()
 })
 
 app.listen(port, () => console.log(`⚡ Server is running on port ${port}`))

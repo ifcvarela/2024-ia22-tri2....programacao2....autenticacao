@@ -1,0 +1,14 @@
+# @name login
+POST http://localhost:3000/token HTTP/1.1
+Content-Type: application/json
+
+{
+  "username": "niel",
+  "password": "123123"
+}
+
+###
+GET http://localhost:3000/token/{{login.response.body.token}} HTTP/1.1
+
+###
+DELETE http://localhost:3000/token/{{login.response.body.token}} HTTP/1.1
