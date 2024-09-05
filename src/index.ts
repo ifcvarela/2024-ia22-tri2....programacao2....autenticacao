@@ -1,8 +1,8 @@
-import express from 'express'
+import express, { RequestHandler } from 'express'
 import * as userServices from './services/user.services'
 import { randomUUID } from 'crypto'
 
-const port = 3000
+const port = 4000
 const app = express()
 
 app.use(express.json())
@@ -18,7 +18,17 @@ const isAlreadyLogged = (username: string) => {
   return false
 }
 
-// CREATE::LOGIN
+// Check if user is logged middleware
+const middlewareLogged: RequestHandler = (req, res, next) => {
+  const token = req.params.token
+  if (!token)
+    return res.status(401).json({ error: "Token não informado" })
+  if (!logged[token])
+    return res.status(401).json({ error: "Token inválido" })
+  next()
+}
+
+// TOKEN CREATE :: LOGIN
 app.post("/token", async (req, res) => {
   const { username, password } = req.body
   const tokenAlread = isAlreadyLogged(username)
@@ -35,7 +45,7 @@ app.post("/token", async (req, res) => {
   return res.json({ token })
 })
 
-// READ::CHECK
+// TOKEN CHECK :: VALIDATE
 app.get("/token/:token", (req, res) => {
   const token = req.params.token
   if (!token)
@@ -45,7 +55,7 @@ app.get("/token/:token", (req, res) => {
   return res.json({ ...logged[token], password: undefined })
 })
 
-// DELETE::LOGOUT
+// TOKEN DELETE :: LOGOUT
 app.delete("/token/:token", (req, res) => {
   const token = req.params.token
   if (!token)
@@ -54,6 +64,12 @@ app.delete("/token/:token", (req, res) => {
     return res.status(401).json({ error: "Token inválido" })
   delete logged[token]
   return res.status(204).send()
+})
+
+// LISTAR USUÁRIOS SOMENTE SE ESTIVER LOGADO
+app.get("/users/:token", middlewareLogged, async (req, res) => {
+  const users = await userServices.getAllUsers()
+  return res.json(users)
 })
 
 app.listen(port, () => console.log(`⚡ Server is running on port ${port}`))
