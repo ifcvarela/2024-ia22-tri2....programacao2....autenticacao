@@ -22,7 +22,7 @@ const isAlreadyLogged = (username: string) => {
 const middlewareLogged: RequestHandler = (req, res, next) => {
   const token = req.params.token
   if (!token)
-    return res.status(401).json({ error: "Token não informado" })
+    return res.status(404).json({ error: "Token não informado" })
   if (!logged[token])
     return res.status(401).json({ error: "Token inválido" })
   next()
